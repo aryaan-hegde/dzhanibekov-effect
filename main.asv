@@ -1,0 +1,84 @@
+clear; clc;
+inertia_conversion = 1.82899785e-5;
+epsilon = 0.01;
+I = inertia_conversion * [70.944; 119.334; 64.726];
+w0 = [epsilon; 0.1; epsilon];
+tspan = [0, 300];
+
+opts = odeset('RelTol',1e-9,'AbsTol',1e-9);
+[t_w, w] = ode45(@(t, w) eulerODE(t, w, I), tspan, w0);
+
+w_interp = @(t) interp1(t_w, w, t)';
+
+R0 = eye(3);
+R0_vec = R0(:);
+
+[t_R, Rvec] = ode45(@(t,R) rotationODE(t, R, w_interp), tspan, R0_vec);
+
+% Recover R(t)
+N = length(t_R);
+R = zeros(3,3,N);
+for k = 1:N
+    R(:,:,k) = reshape(Rvec(k,:), 3, 3);
+end
+
+%% -------------------- STEP 3: TRACK T-HANDLE AXIS --------------------
+% Long handle along body z-axis
+e3_body = [0; 0; 1];
+
+handle_lab = zeros(3, N);
+for k = 1:N
+    handle_lab(:,k) = R(:,:,k) * e3_body;
+end
+
+%% -------------------- STEP 4: PLOT THE FLIP --------------------
+L = 1.0;      % shaft length
+W = 0.4;      % crossbar half-width
+
+% Body-frame points
+shaft_body = [ 0   0;
+              -L/2 L/2;
+               0   0 ];
+
+cross_body = [ -W  W;
+                L/2 L/2;
+                0   0 ];
+
+figure;
+axis equal;
+axis([-1.2 1.2 -1.2 1.2 -1.2 1.2]);
+grid on;
+view(3);
+xlabel('X'); ylabel('Y'); zlabel('Z');
+title('Dzhanibekov Effect — T-Handle Animation');
+
+hold on;
+
+% Plot initial handle
+shaft_lab = R(:,:,1) * shaft_body;
+cross_lab = R(:,:,1) * cross_body;
+
+h_shaft = plot3(shaft_lab(1,:), shaft_lab(2,:), shaft_lab(3,:), ...
+                'k', 'LineWidth', 3);
+h_cross = plot3(cross_lab(1,:), cross_lab(2,:), cross_lab(3,:), ...
+                'r', 'LineWidth', 3);
+
+dt_sim = t_R(2) - t_R(1);   % simulation timestep
+slow_factor = 2000;          % larger = slower animation
+
+for k = 1:5:length(t_R)
+
+    shaft_lab = R(:,:,k) * shaft_body;
+    cross_lab = R(:,:,k) * cross_body;
+
+    set(h_shaft, 'XData', shaft_lab(1,:), ...
+                 'YData', shaft_lab(2,:), ...
+                 'ZData', shaft_lab(3,:));
+
+    set(h_cross, 'XData', cross_lab(1,:), ...
+                 'YData', cross_lab(2,:), ...
+                 'ZData', cross_lab(3,:));
+
+    drawnow;
+    pause(slow_factor * dt_sim);
+end
