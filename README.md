@@ -1,8 +1,8 @@
 # Newton's Second Law For Rotation
 
 We know that by Newton's second law, forces and momenta are tied
-together by the following equation: $$\
-    \boldsymbol{F}= \frac{d\boldsymbol{p}}{dt}
+together by the following equation: $$
+\boldsymbol{F}= \frac{d\boldsymbol{p}}{dt}
 $$ When forces are balanced, this leads to a conservation
 law (i.e. of linear momentum) and translational equilibrium. A similar
 thing happens with a so-called term angular momentum (this time,
